@@ -77,7 +77,7 @@ class _TaskCard extends ConsumerWidget {
         padding: const EdgeInsets.only(right: 20),
         margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
-          color: C.error.withOpacity(0.1),
+          color: C.error.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(14),
         ),
         child: const Icon(Icons.delete_outline, color: C.error),

@@ -35,6 +35,8 @@ class HomeScreen extends ConsumerWidget {
           SliverToBoxAdapter(
             child: _GenerateArea(sched: sched, tasks: tasks, prefs: prefs, apiKey: apiKey),
           ),
+          if (sched.schedule != null && sched.schedule!.blocks.isNotEmpty)
+            SliverToBoxAdapter(child: _ScheduleSection(sched: sched.schedule!)),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
@@ -327,6 +329,109 @@ class _GeneratingPill extends StatelessWidget {
           Text('Building your schedule…', style: TextStyle(fontSize: 14, color: C.textSec)),
         ]),
       );
+}
+
+// ── Schedule section ──────────────────────────────────────────────────────────
+
+class _ScheduleSection extends StatelessWidget {
+  final GeneratedSchedule sched;
+  const _ScheduleSection({required this.sched});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          const Text('Today\'s Schedule',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: C.textPri)),
+          Text(DateFormat('MMM d').format(sched.date),
+              style: const TextStyle(fontSize: 13, color: C.textSec)),
+        ]),
+        if (sched.summary.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(sched.summary,
+              style: const TextStyle(fontSize: 13, color: C.textSec, height: 1.4)),
+        ],
+        const SizedBox(height: 12),
+        ...sched.blocks.map((b) => _ScheduleBlockCard(block: b)),
+        if (sched.unscheduledIds.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color:        C.surface,
+              borderRadius: BorderRadius.circular(12),
+              border:       Border.all(color: C.border),
+            ),
+            child: Row(children: [
+              const Icon(Icons.warning_amber_outlined, size: 15, color: C.warning),
+              const SizedBox(width: 8),
+              Text('${sched.unscheduledIds.length} task(s) didn\'t fit the work window',
+                  style: const TextStyle(fontSize: 12, color: C.textSec)),
+            ]),
+          ),
+        ],
+      ]),
+    );
+  }
+}
+
+class _ScheduleBlockCard extends StatelessWidget {
+  final ScheduleBlock block;
+  const _ScheduleBlockCard({required this.block});
+
+  @override
+  Widget build(BuildContext context) {
+    final color  = C.priority(block.priority);
+    final isNow  = block.isNow;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color:        isNow ? C.accent.withOpacity(0.04) : C.surface,
+        borderRadius: BorderRadius.circular(12),
+        border:       Border.all(color: isNow ? C.accent.withOpacity(0.3) : C.border),
+      ),
+      child: Row(children: [
+        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          Text(block.startTime,
+              style: TextStyle(
+                fontSize:   12,
+                fontWeight: FontWeight.w600,
+                color:      isNow ? C.accent : C.textSec,
+              )),
+          const SizedBox(height: 2),
+          Text(block.endTime,
+              style: const TextStyle(fontSize: 11, color: C.textMuted)),
+        ]),
+        const SizedBox(width: 12),
+        Container(
+          width: 3, height: 36,
+          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2)),
+        ),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(block.taskTitle,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: C.textPri),
+              overflow: TextOverflow.ellipsis),
+          Text('${block.durationMinutes} min',
+              style: const TextStyle(fontSize: 11, color: C.textMuted)),
+        ])),
+        if (isNow)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color:        C.accent,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Text('Now',
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.white)),
+          ),
+      ]),
+    );
+  }
 }
 
 // ── Home Task Card ────────────────────────────────────────────────────────────

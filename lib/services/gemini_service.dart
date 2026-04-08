@@ -24,7 +24,6 @@ class GeminiService {
 
     try {
       final res = await _dio.post(
-        // Using the standard Gemini 1.5 Flash endpoint
         'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$apiKey',
         options: Options(headers: {'content-type': 'application/json'}),
         data: {
@@ -36,8 +35,10 @@ class GeminiService {
             }
           ],
           'generationConfig': {
-            'responseMimeType': 'application/json',
-            'maxOutputTokens': 2048,
+            'maxOutputTokens': 8192,
+            'thinkingConfig': {
+              'thinkingBudget': 0,
+            },
           },
         },
       );
@@ -147,8 +148,6 @@ Reply with ONLY valid JSON — no markdown, no explanation:
 
   Exception _friendly(DioException e) {
     final status = e.response?.statusCode;
-    
-    // Safely try to extract the exact error message from Google's response
     final googleMessage = e.response?.data?['error']?['message'] ?? e.message;
 
     if (status == 400) return Exception('Bad Request: $googleMessage');
@@ -156,13 +155,12 @@ Reply with ONLY valid JSON — no markdown, no explanation:
     if (status == 404) return Exception('Model not found (404): $googleMessage');
     if (status == 429) return Exception('Rate limit reached! Wait 60 seconds and try again.');
     if (status != null && status >= 500) return Exception('Gemini servers are down.');
-    
+
     if (e.type == DioExceptionType.connectionTimeout ||
         e.type == DioExceptionType.connectionError) {
       return Exception('No internet connection. Please check your network.');
     }
 
-    // THE ULTIMATE CATCH-ALL: This stops the mystery "Something went wrong" message!
     return Exception('Google API Error ($status): $googleMessage');
   }
 
