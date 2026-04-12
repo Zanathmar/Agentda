@@ -19,25 +19,72 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor:                     Colors.transparent,
-    statusBarIconBrightness:            Brightness.dark,
-    systemNavigationBarColor:           C.bg,
-    systemNavigationBarIconBrightness:  Brightness.dark,
+    statusBarColor:                    Colors.transparent,
+    statusBarIconBrightness:           Brightness.dark,
+    systemNavigationBarColor:          C.bg,
+    systemNavigationBarIconBrightness: Brightness.dark,
   ));
 
   const supabaseUrl  = String.fromEnvironment('SUPABASE_URL',  defaultValue: '');
   const supabaseAnon = String.fromEnvironment('SUPABASE_ANON', defaultValue: '');
 
-  assert(supabaseUrl.isNotEmpty,  'Missing --dart-define=SUPABASE_URL=...');
-  assert(supabaseAnon.isNotEmpty, 'Missing --dart-define=SUPABASE_ANON=...');
-
   if (supabaseUrl.isEmpty || supabaseAnon.isEmpty) {
-    throw Exception('Supabase credentials are not set.');
+    runApp(const _ErrorApp(
+      icon:    Icons.build_outlined,
+      title:   'APK not configured',
+      message: 'This APK was built without Supabase credentials. '
+               'Download the official release from the GitHub Releases page.',
+    ));
+    return;
   }
 
-  await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnon);
+  try {
+    await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnon);
+  } catch (e) {
+    runApp(_ErrorApp(
+      icon:    Icons.cloud_off_outlined,
+      title:   'Could not connect',
+      message: e.toString(),
+    ));
+    return;
+  }
 
   runApp(const ProviderScope(child: App()));
+}
+
+// ── Error screen (replaces blank screen for any startup failure) ──────────────
+
+class _ErrorApp extends StatelessWidget {
+  final IconData icon;
+  final String   title;
+  final String   message;
+  const _ErrorApp({required this.icon, required this.title, required this.message});
+
+  @override
+  Widget build(BuildContext context) => MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: C.bg,
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(36),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Icon(icon, size: 52, color: C.textMuted),
+                const SizedBox(height: 20),
+                Text(title,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.w700, color: C.textPri,
+                    )),
+                const SizedBox(height: 10),
+                Text(message,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 13, color: C.textSec, height: 1.6)),
+              ]),
+            ),
+          ),
+        ),
+      );
 }
 
 // ── Router ────────────────────────────────────────────────────────────────────
@@ -55,10 +102,10 @@ final _routerProvider = Provider<GoRouter>((ref) {
       final onAuth    = loc == '/login' || loc == '/register';
       final onSplash  = loc == '/splash';
 
-      if (isLoading && !onSplash)  return '/splash';
-      if (!isLoading && onSplash)  return isAuth ? '/' : '/login';
+      if (isLoading && !onSplash)          return '/splash';
+      if (!isLoading && onSplash)          return isAuth ? '/' : '/login';
       if (!isAuth && !onAuth && !onSplash) return '/login';
-      if (isAuth && onAuth)        return '/';
+      if (isAuth && onAuth)                return '/';
       return null;
     },
     routes: [
